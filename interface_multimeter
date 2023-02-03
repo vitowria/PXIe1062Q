@@ -1,0 +1,48 @@
+import tkinter
+
+from tkinter import messagebox
+from tkinter import Tk, Button, Label, Frame
+import os
+
+
+
+def resistence():
+    app.destroy()
+    cmd = 'python3 ex1_Resistence.py'
+    os.system(cmd)
+def current():
+    app.destroy()
+    cmd2 = 'python3 ex3_Current'
+    os.system(cmd2)
+def voltage():
+    app.destroy()
+    cmd3 = 'python3 ex4_Voltage'
+    os.system(cmd3)
+
+
+def geometry():
+    app.minsize(200,150)
+    app.maxsize(300,250)
+    app.geometry("300x200")
+
+
+
+app = tkinter.Tk()
+app.title("NI PXI-4071 (Multimeter)")
+
+geometry()
+
+w_label = tkinter.Label(app, text = "Chose the type of measure")
+w_label.pack()
+
+button_resistence = tkinter.Button(app, text = "Resistence", width = 15, height = 1, command = resistence)
+button_resistence.pack()
+
+button_voltage = tkinter.Button(app, text = "Voltage", width = 15, height = 1, command = voltage)
+button_voltage.pack()
+
+button_current = tkinter.Button(app, text = "Current", width = 15, height = 1, command = current)
+button_current.pack()
+
+
+app.mainloop()

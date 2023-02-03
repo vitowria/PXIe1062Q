@@ -1,0 +1,155 @@
+import nidmm
+import pandas as pd 
+import numpy as np 
+import pyqtgraph as pg
+import time
+import tkinter
+
+from pyqtgraph.Qt import QtCore
+from PyQt5 import QtWidgets, QtCore
+from pyqtgraph import PlotWidget, plot
+
+from tkinter import messagebox
+from tkinter import Tk, Button, Label, Frame
+
+###################################################################################################################
+
+win = pg.GraphicsLayoutWidget(show=True)
+
+liste = []
+time_measurements = []
+
+data3 = []
+ptr3 = 0
+
+#######################################################  To cvs  ##################################################
+
+def to_cvs(liste, time_mesurements, delta):
+    dict = {'voltage (V)': liste, 'time (sec)': time_measurements}  
+    df = pd.DataFrame(dict) 
+    df.to_csv('DataVoltage.csv', index = False)
+
+####################################################################################################################
+
+def geometry():
+    app.minsize(400,400)
+    app.maxsize(740,500)
+    app.geometry("500x500")
+
+def winflag(*args):
+    expression.set(expression.get())
+    num = expression.get()
+
+def initMesure(*args):
+    if lb.curselection()[0] == 0:
+        nom = 'DC_CURRENT'
+    else:
+        nom = 'AC_CURRENT'
+    return nom
+
+def initResolution(*args):
+    if resolution.curselection()[0] == 0:
+        resolut = 7.5
+    elif resolution.curselection()[0] == 1:
+        resolut = 6.5
+    elif resolution.curselection()[0] == 2:
+        resolut = 5.5
+    elif resolution.curselection()[0] == 3:
+        resolut = 4.5
+    else:
+        resolut = 3.0    
+    return resolut
+
+
+def mainp():
+    with nidmm.Session("PXI1Slot2") as session:
+        
+        num = expression.get()
+        resolut = initResolution()
+        nom = initMesure()
+
+        print(lb.curselection()[0], resolution.curselection()[0], num, resolut, nom)
+        
+        
+        app.destroy()               #closes the configuration window
+        array_size = 50             #definition of the increqse of the vector of samples
+
+        session.configure_measurement_digits(nidmm.Function[nom] ,num, resolut) #definition of the measurements caracteristics
+            
+        p4 = win.addPlot()
+        p4.setClipToView(True)
+        curve4 = p4.plot()
+
+
+        def update():
+            global data3, ptr3
+            start = time.time()
+            liste.append(session.read())
+            end = time.time()  
+            if ptr3>0: 
+                time_measurements.append(time_measurements[ptr3-1]+ end-start) 
+                to_cvs(liste, time_measurements)
+            else:
+                
+                time_measurements.append(end-start)
+                to_cvs(liste, time_measurements)  
+            
+            data3.append(liste[ptr3])
+            ptr3 += 1
+            if ptr3 >= len(data3):
+                tmp = data3
+                data3.extend([]*array_size)
+                data3[:len(tmp)] = tmp
+            curve4.setData(data3[:ptr3])
+
+            
+
+##################################################  Plot  ########################################################
+        
+        debut = time.time()
+        timer = pg.QtCore.QTimer()
+        timer.timeout.connect(update)
+        timer.start(1)
+        
+        fin = time.time()
+        print(fin-debut)
+        
+        if __name__ == '__main__':
+                pg.exec()
+#################################################  Interface  #####################################################
+app = tkinter.Tk()
+app.title("Configurations (Voltage)")
+geometry()
+
+expression = tkinter.IntVar()
+expression.trace("w", winflag)
+
+label_range = tkinter.Label(app,text="Range")
+label_range.pack()
+
+entry = tkinter.Entry(app, textvariable = expression, width = 30)
+entry.pack()
+
+label_resolution = tkinter.Label(app,text="Resolution")
+label_resolution.pack()
+
+resolution = tkinter.Listbox(app, selectmode=tkinter.SINGLE, exportselection=0)
+resolution.insert(1, "7.5")
+resolution.insert(2, "6.5")
+resolution.insert(3, "5.5")
+resolution.insert(4, "4.5")
+resolution.insert(5, "3")
+resolution.pack()
+
+label_type = tkinter.Label(app,text="Type of measure")
+label_type.pack()
+
+lb = tkinter.Listbox(app, selectmode=tkinter.SINGLE,exportselection=0)
+lb.insert(1, "DC Current")
+lb.insert(2, "AC Current")
+lb.pack()
+
+btn = tkinter.Button(app, text = "ok", width = 15, height = 1, command = mainp)
+btn.pack()
+
+app.mainloop()

@@ -1,0 +1,59 @@
+import nidcpower
+import pandas as pd 
+import numpy as np 
+import pyqtgraph as pg
+from pyqtgraph.Qt import QtCore
+import time
+
+from PyQt5 import QtWidgets, QtCore
+from pyqtgraph import PlotWidget, plot
+import pyqtgraph as pg
+import sys  # We need sys so that we can pass argv to QApplication
+import os
+
+# Configure the session.
+#win = pg.GraphicsLayoutWidget(show=True)
+
+#######################################################  To cvs  #############################################################""
+
+def to_cvs(measurements):
+    dict = {'voltage (V)': measurements.voltage, 'current (A)': measurements.current}  
+    df = pd.DataFrame(dict) 
+    df.to_csv('DataSMU.csv', index = False)
+
+###############################################################################################################################
+
+
+with nidcpower.Session('PXI1Slot4/1-2') as session:
+    session.measure_record_length = 50
+    session.measure_record_length_is_finite = True
+    session.measure_when = nidcpower.MeasureWhen.AUTOMATICALLY_AFTER_SOURCE_COMPLETE
+    session.voltage_level = 5.0
+    
+    #p4 = win.addPlot()  
+    #p4.setClipToView(True)
+    #curve4 = p4.plot()
+    #data3 = []
+    #ptr3 = 0
+    
+    session.commit()
+    samples_acquired = 0
+    print('  #    Voltage    Current    In Compliance')
+    #def update():
+    with session.initiate():   
+        if samples_acquired < 50:
+            measurements = session.fetch_multiple(count=session.fetch_backlog)
+            to_cvs(measurements)
+            samples_acquired += len(measurements)
+            for i in range(len(measurements)):
+                print(i, measurements[i].voltage, measurements[i].current, measurements[i].in_compliance)
+                
+
+    ##################################################  Plot  ########################################################
+
+    
+    #timers = pg.QtCore.QTimer()
+    #timers.timeout.connect(update)
+    #timers.start(100)
+    #if __name__ == '__main__':
+    #        pg.exec()
